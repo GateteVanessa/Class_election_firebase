@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../logic/election_logic.dart';
+import '../models/candidate.dart';
 
 class CandidatesScreen extends StatefulWidget {
   final Election election;
@@ -26,6 +27,57 @@ class _CandidatesScreenState extends State<CandidatesScreen> {
     } else {
       show(error);
     }
+  }
+
+  // Step 5, edit: change the name of a candidate (an update in Firestore).
+  Future<void> edit(Candidate c) async {
+    final nameController = TextEditingController(text: c.name);
+    final newName = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Edit candidate'),
+        content: TextField(
+          controller: nameController,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          decoration: const InputDecoration(labelText: 'Name'),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel')),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, nameController.text),
+              child: const Text('Save')),
+        ],
+      ),
+    );
+    nameController.dispose();
+    if (newName == null) return;
+    final error = widget.election.renameCandidate(c, newName);
+    show(error ?? 'Candidate updated');
+  }
+
+  // Step 5, delete: ask first, then remove the document.
+  Future<void> confirmDelete(Candidate c) async {
+    final yes = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Are you sure?'),
+        content: Text('Remove ${c.name}?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Remove')),
+        ],
+      ),
+    );
+    if (yes != true) return;
+    final error = widget.election.removeCandidate(c);
+    if (error != null) show(error);
   }
 
   Future<void> confirmReset() async {
@@ -84,7 +136,10 @@ class _CandidatesScreenState extends State<CandidatesScreen> {
               const SizedBox(height: 12),
               Expanded(
                 child: candidates.isEmpty
-                    ? const Center(child: Text('No candidates yet'))
+                    ? const Center(
+                    child: Text(
+                        'No candidates yet.\nType a name above and tap Add.',
+                        textAlign: TextAlign.center))
                     : ListView.builder(
                   itemCount: candidates.length,
                   itemBuilder: (context, i) {
@@ -94,13 +149,20 @@ class _CandidatesScreenState extends State<CandidatesScreen> {
                         leading: const Icon(Icons.person),
                         title: Text(c.name),
                         subtitle: Text('${c.votes} votes'),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete),
-                          onPressed: () {
-                            final error =
-                            widget.election.removeCandidate(c);
-                            if (error != null) show(error);
-                          },
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit),
+                              tooltip: 'Edit',
+                              onPressed: () => edit(c),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete),
+                              tooltip: 'Remove',
+                              onPressed: () => confirmDelete(c),
+                            ),
+                          ],
                         ),
                       ),
                     );
