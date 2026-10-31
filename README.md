@@ -17,7 +17,7 @@ Before the change in the console:
 
 After the change, without restarting the app:
 
-![Live update, after](screenshots/live.png)
+![Live update, after](screenshots/liveafter.png)
 
 ### 4. Privacy between accounts
 First account:
@@ -26,4 +26,4 @@ First account:
 
 Second account sees nothing of the first account's data:
 
-![Second account sees nothing of mine](screenshots/denied.png)
+![Second account sees nothing of mine](screenshots/deniedtwo.png)
